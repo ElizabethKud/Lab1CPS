@@ -34,9 +34,19 @@ namespace Lab1CPO
         {
             CommandBindings.Add(new CommandBinding(ApplicationCommands.New, NewCanvas_Click));
             CommandBindings.Add(new CommandBinding(ApplicationCommands.Open, OpenFile_Click));
-            CommandBindings.Add(new CommandBinding(ApplicationCommands.Save, SaveFile_Click));
-            CommandBindings.Add(new CommandBinding(ApplicationCommands.SaveAs, SaveFileAs_Click));
-            CommandBindings.Add(new CommandBinding(ApplicationCommands.Close, CloseTab_Click));
+            CommandBindings.Add(new CommandBinding(ApplicationCommands.Save, SaveFile_Click, SaveFile_CanExecute));
+            CommandBindings.Add(new CommandBinding(ApplicationCommands.SaveAs, SaveFileAs_Click, SaveFile_CanExecute));
+            CommandBindings.Add(new CommandBinding(ApplicationCommands.Close, CloseTab_Click, CloseTab_CanExecute));
+        }
+        
+        private void SaveFile_CanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = ImageTabs != null && ImageTabs.Items.Count > 0;
+        }
+
+        private void CloseTab_CanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = ImageTabs != null && ImageTabs.Items.Count > 0;
         }
 
         private void NewCanvas_Click(object sender, RoutedEventArgs e)

@@ -8,9 +8,9 @@
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.New" Executed="NewCanvas_Click"/>
         <CommandBinding Command="ApplicationCommands.Open" Executed="OpenFile_Click"/>
-        <CommandBinding Command="ApplicationCommands.Save" Executed="SaveFile_Click"/>
-        <CommandBinding Command="ApplicationCommands.SaveAs" Executed="SaveFileAs_Click"/>
-        <CommandBinding Command="ApplicationCommands.Close" Executed="CloseTab_Click"/>
+        <CommandBinding Command="ApplicationCommands.Save" Executed="SaveFile_Click" CanExecute="SaveFile_CanExecute"/>
+        <CommandBinding Command="ApplicationCommands.SaveAs" Executed="SaveFileAs_Click" CanExecute="SaveFile_CanExecute"/>
+        <CommandBinding Command="ApplicationCommands.Close" Executed="CloseTab_Click" CanExecute="CloseTab_CanExecute"/>
         <CommandBinding Command="ApplicationCommands.Close" Executed="Exit_Click"/>
     </Window.CommandBindings>
 
@@ -20,9 +20,9 @@
             <MenuItem Header="Файл">
                 <MenuItem x:Name="NewMenuItem" Header="Новый холст" Command="ApplicationCommands.New" InputGestureText="Ctrl+N"/>
                 <MenuItem x:Name="OpenMenuItem" Header="Открыть" Command="ApplicationCommands.Open" InputGestureText="Ctrl+O"/>
-                <MenuItem x:Name="SaveMenuItem" Header="Сохранить" Command="ApplicationCommands.Save" InputGestureText="Ctrl+S"/>
-                <MenuItem x:Name="SaveAsMenuItem" Header="Сохранить как..." Command="ApplicationCommands.SaveAs" InputGestureText="Ctrl+Shift+S"/>
-                <MenuItem x:Name="CloseMenuItem" Header="Закрыть вкладку" Command="ApplicationCommands.Close" InputGestureText="Ctrl+W"/>
+                <MenuItem x:Name="SaveMenuItem" Header="Сохранить" Command="ApplicationCommands.Save" InputGestureText="Ctrl+S" IsEnabled="False"/>
+                <MenuItem x:Name="SaveAsMenuItem" Header="Сохранить как..." Command="ApplicationCommands.SaveAs" InputGestureText="Ctrl+Shift+S" IsEnabled="False"/>
+                <MenuItem x:Name="CloseMenuItem" Header="Закрыть вкладку" Command="ApplicationCommands.Close" InputGestureText="Ctrl+W" IsEnabled="False"/>
                 <Separator/>
                 <MenuItem Header="Выход" Click="Exit_Click" InputGestureText="Alt+F4"/>
             </MenuItem>
@@ -38,19 +38,19 @@
         <!-- Панель инструментов -->
         <ToolBar DockPanel.Dock="Top">
             <Button Command="ApplicationCommands.New" ToolTip="Новый холст">
-                <Image Source="C:\Users\Лиза\RiderProjects\Lab1CPO\Lab1CPO\NewCanvas.png" Width="24" Height="24"/>
+                <Image Source="C:\Users\Лиза\RiderProjects\Lab1CPO\Lab1CPO\Resources\NewCanvas.png" Width="24" Height="24"/>
             </Button>
             <Button Command="ApplicationCommands.Open" ToolTip="Открыть файл">
-                <Image Source="C:\Users\Лиза\RiderProjects\Lab1CPO\Lab1CPO\Open.png" Width="24" Height="24"/>
+                <Image Source="C:\Users\Лиза\RiderProjects\Lab1CPO\Lab1CPO\Resources\Open.png" Width="24" Height="24"/>
             </Button>
-            <Button x:Name="SaveButton" Command="ApplicationCommands.Save" ToolTip="Сохранить">
-                <Image Source="C:\Users\Лиза\RiderProjects\Lab1CPO\Lab1CPO\Save.png" Width="24" Height="24"/>
+            <Button x:Name="SaveButton" Command="ApplicationCommands.Save" ToolTip="Сохранить" IsEnabled="False">
+                <Image Source="C:\Users\Лиза\RiderProjects\Lab1CPO\Lab1CPO\Resources\Save.png" Width="24" Height="24"/>
             </Button>
-            <Button x:Name="SaveAsButton" Command="ApplicationCommands.SaveAs" ToolTip="Сохранить как...">
-                <Image Source="C:\Users\Лиза\RiderProjects\Lab1CPO\Lab1CPO\SaveAs.png" Width="24" Height="24"/>
+            <Button x:Name="SaveAsButton" Command="ApplicationCommands.SaveAs" ToolTip="Сохранить как..." IsEnabled="False">
+                <Image Source="C:\Users\Лиза\RiderProjects\Lab1CPO\Lab1CPO\Resources\SaveAs.png" Height="24"/>
             </Button>
-            <Button x:Name="CloseButton" Command="ApplicationCommands.Close" ToolTip="Закрыть вкладку">
-                <Image Source="C:\Users\Лиза\RiderProjects\Lab1CPO\Lab1CPO\Close.png" Width="24" Height="24"/>
+            <Button x:Name="CloseButton" Command="ApplicationCommands.Close" ToolTip="Закрыть вкладку" IsEnabled="False">
+                <Image Source="C:\Users\Лиза\RiderProjects\Lab1CPO\Lab1CPO\Resources\Close.png" Width="24" Height="24"/>
             </Button>
             
             <Separator/>
