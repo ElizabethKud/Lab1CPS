@@ -14,4 +14,8 @@
       <PackageReference Include="Fluent.Ribbon" Version="10.1.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Remove="RelayCommand.cs" />
+    </ItemGroup>
+
 </Project>

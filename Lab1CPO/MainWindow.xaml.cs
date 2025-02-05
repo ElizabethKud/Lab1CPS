@@ -1,392 +1,198 @@
 ﻿using System;
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 using Microsoft.Win32;
-using Path = System.IO.Path;
-using Xceed.Wpf.AvalonDock; 
-using Xceed.Wpf.AvalonDock.Layout;
-using Fluent;
-using Button = System.Windows.Controls.Button;
 
 namespace Lab1CPO
 {
     public partial class MainWindow : Window
     {
-        private bool isDrawing = false;
-        private Point lastPoint;
-        private SolidColorBrush penBrush = Brushes.Black;
-        private double penThickness = 2;
-        private Border selectedColorBorder = null;
-        private Canvas activeCanvas = null;
-        private string currentFilePath = null;
+        public static readonly RoutedCommand New = new RoutedCommand();
+        public static readonly RoutedCommand Save = new RoutedCommand();
+
+        private Color currentColor = Colors.Black;
+        private double currentLineWidth = 1;
 
         public MainWindow()
         {
             InitializeComponent();
-            InitializeShortcuts();
-            InitializeDefaultSelection();
-            UpdateCommandsState();
-            SizeChanged += MainWindow_SizeChanged;
+    
+            CommandBindings.Add(new CommandBinding(New, New_Executed));
+            CommandBindings.Add(new CommandBinding(Save, Save_Executed));
+    
+            New.InputGestures.Add(new KeyGesture(Key.N, ModifierKeys.Control));
+            Save.InputGestures.Add(new KeyGesture(Key.S, ModifierKeys.Control));
+    
+            // Создаем первый документ
+            NewDocument();
+    
+            // Временно отключаем обработчик для инициализации ComboBox
+            lineWidthCombo.SelectionChanged -= LineWidthCombo_SelectionChanged;
+            lineWidthCombo.SelectedIndex = 0;
+            lineWidthCombo.SelectionChanged += LineWidthCombo_SelectionChanged;
+    
+            UpdateToolButtons();
         }
 
-        private void InitializeShortcuts()
+        private void NewDocument()
         {
-            CommandBindings.Add(new CommandBinding(ApplicationCommands.New, NewCanvas_Click));
-            CommandBindings.Add(new CommandBinding(ApplicationCommands.Open, OpenFile_Click));
-            CommandBindings.Add(new CommandBinding(ApplicationCommands.Save, SaveFile_Click, SaveFile_CanExecute));
-            CommandBindings.Add(new CommandBinding(ApplicationCommands.SaveAs, SaveFileAs_Click, SaveFile_CanExecute));
-            CommandBindings.Add(new CommandBinding(ApplicationCommands.Close, CloseTab_Click, CloseTab_CanExecute));
-        }
-        
-        private void SaveFile_CanExecute(object sender, CanExecuteRoutedEventArgs e)
-        {
-            e.CanExecute = DocumentPane != null && DocumentPane.Children?.OfType<LayoutDocument>().Any() == true;
-        }
-
-        private void CloseTab_CanExecute(object sender, CanExecuteRoutedEventArgs e)
-        {
-            e.CanExecute = DocumentPane != null && DocumentPane.Children.OfType<LayoutDocument>().Any();
-        }
-
-
-        private void NewCanvas_Click(object sender, RoutedEventArgs e) => OpenNewCanvas();
-
-        private void OpenNewCanvas()
-        {
-            LayoutDocument doc = new LayoutDocument { Title = "Новый холст" };
-            Grid grid = new Grid();
-
-            Canvas drawingCanvas = new Canvas
+            var doc = new DocumentControl
             {
-                Background = Brushes.White,
-                Width = 800,
-                Height = 600
+                Color = new SolidColorBrush(currentColor),
+                LineWidth = currentLineWidth
             };
 
-            grid.Children.Add(drawingCanvas);
-            drawingCanvas.MouseDown += Canvas_MouseDown;
-            drawingCanvas.MouseMove += Canvas_MouseMove;
-            drawingCanvas.MouseUp += Canvas_MouseUp;
+            var tabItem = new TabItem
+            {
+                Header = $"Документ {DocumentsTabControl.Items.Count + 1}",
+                Content = doc,
+                Tag = doc
+            };
 
-            doc.Content = grid;
-            DocumentPane.Children.Add(doc);
+            DocumentsTabControl.Items.Add(tabItem);
+            DocumentsTabControl.SelectedItem = tabItem;
         }
 
-        private void OpenFile_Click(object sender, RoutedEventArgs e)
+        private DocumentControl CurrentDocument => 
+            (DocumentsTabControl.SelectedItem as TabItem)?.Content as DocumentControl;
+
+        private void New_Executed(object sender, ExecutedRoutedEventArgs e) => NewDocument();
+
+        private void Save_Executed(object sender, ExecutedRoutedEventArgs e)
         {
-            try
+            var saveDialog = new SaveFileDialog
             {
-                OpenFileDialog openFileDialog = new OpenFileDialog { Filter = "Изображения|*.bmp;*.jpg;*.png" };
-                if (openFileDialog.ShowDialog() == true)
+                Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg|BMP Image (*.bmp)|*.bmp"
+            };
+
+            if (saveDialog.ShowDialog() == true && CurrentDocument != null)
+            {
+                CurrentDocument.SaveToFile(saveDialog.FileName);
+            }
+        }
+
+        private void Exit_Click(object sender, RoutedEventArgs e) => Close();
+
+        private void About_Click(object sender, RoutedEventArgs e)
+        {
+            var about = new AboutWindow { Owner = this };
+            about.ShowDialog();
+        }
+
+        private void ColorPicker_Click(object sender, RoutedEventArgs e)
+        {
+            var colorDialog = new System.Windows.Forms.ColorDialog();
+            if (colorDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                currentColor = Color.FromArgb(
+                    colorDialog.Color.A,
+                    colorDialog.Color.R,
+                    colorDialog.Color.G,
+                    colorDialog.Color.B);
+
+                if (CurrentDocument != null)
                 {
-                    OpenImageTab(openFileDialog.FileName);
-                }   
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при открытии файла: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void OpenImageTab(string filePath)
-        {
-            LayoutDocument doc = new LayoutDocument { Title = Path.GetFileName(filePath) };
-            Image image = new Image { Source = new BitmapImage(new Uri(filePath)), Stretch = Stretch.None };
-            Canvas drawingCanvas = new Canvas { Background = Brushes.Transparent, Width = image.Source.Width, Height = image.Source.Height };
-
-            drawingCanvas.MouseDown += Canvas_MouseDown;
-            drawingCanvas.MouseMove += Canvas_MouseMove;
-            drawingCanvas.MouseUp += Canvas_MouseUp;
-
-            Grid grid = new Grid();
-            grid.Children.Add(image);
-            grid.Children.Add(drawingCanvas);
-
-            doc.Content = new ScrollViewer { Content = grid };
-            DocumentPane.Children.Add(doc);
-            doc.IsSelected = true;
-        }
-
-        private void Canvas_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (sender is Canvas canvas)
-            {
-                isDrawing = true;
-                lastPoint = e.GetPosition(canvas);
-                activeCanvas = canvas;
-            }
-        }
-
-        private void Canvas_MouseMove(object sender, MouseEventArgs e)
-        {
-            if (isDrawing && activeCanvas != null)
-            {
-                Point currentPoint = e.GetPosition(activeCanvas);
-                Line line = new Line
-                {
-                    Stroke = penBrush,
-                    StrokeThickness = penThickness,
-                    X1 = lastPoint.X,
-                    Y1 = lastPoint.Y,
-                    X2 = currentPoint.X,
-                    Y2 = currentPoint.Y
-                };
-                activeCanvas.Children.Add(line);
-                lastPoint = currentPoint;
-            }
-        }
-
-        private void Canvas_MouseUp(object sender, MouseButtonEventArgs e)
-        {
-            isDrawing = false;
-            activeCanvas = null;
-        }
-
-        private void SaveFile_Click(object sender, RoutedEventArgs e)
-        {
-            if (DocumentPane.SelectedContent is LayoutDocument doc && doc.Content is ScrollViewer viewer && viewer.Content is Canvas canvas)
-            {
-                SaveFileDialog saveFileDialog = new SaveFileDialog { Filter = "BMP Files|*.bmp|JPEG Files|*.jpg" };
-                if (saveFileDialog.ShowDialog() == true)
-                {
-                    SaveImage(canvas, saveFileDialog.FileName);
+                    CurrentDocument.Color = new SolidColorBrush(currentColor);
                 }
             }
         }
 
-        private void SaveFileAs_Click(object sender, RoutedEventArgs e)
+        private void Tool_Pen_Click(object sender, RoutedEventArgs e)
         {
-            try
+            if (CurrentDocument != null)
             {
-                if (DocumentPane.SelectedContent is LayoutDocument selectedDoc &&
-                    selectedDoc.Content is ScrollViewer viewer &&
-                    viewer.Content is Canvas canvas)
-                {
-                    SaveFileDialog saveFileDialog = new SaveFileDialog { Filter = "BMP Files|*.bmp|JPEG Files|*.jpg" };
-                    if (saveFileDialog.ShowDialog() == true)
-                    {
-                        SaveImage(canvas, saveFileDialog.FileName);
-                    }
-                }
-                else
-                {
-                    MessageBox.Show("Нет активного документа для сохранения.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при сохранении файла: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                CurrentDocument.CurrentTool = Tools.Pen;
+                UpdateToolButtons();
             }
         }
 
-
-        private void SaveImage(Canvas canvas, string filePath)
+        private void Tool_Circle_Click(object sender, RoutedEventArgs e)
         {
-            RenderTargetBitmap renderBitmap = new RenderTargetBitmap((int)canvas.ActualWidth, (int)canvas.ActualHeight, 96d, 96d, PixelFormats.Pbgra32);
-            canvas.Measure(new Size(canvas.ActualWidth, canvas.ActualHeight));
-            canvas.Arrange(new Rect(new Size(canvas.ActualWidth, canvas.ActualHeight)));
-            renderBitmap.Render(canvas);
-
-            BitmapEncoder encoder = Path.GetExtension(filePath).ToLower() == ".bmp" ? new BmpBitmapEncoder() : new JpegBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(renderBitmap));
-
-            using (var stream = File.Create(filePath))
+            if (CurrentDocument != null)
             {
-                encoder.Save(stream);
+                CurrentDocument.CurrentTool = Tools.Circle;
+                UpdateToolButtons();
             }
         }
 
-        private void ChangePenColor_Click(object sender, RoutedEventArgs e)
+        private void UpdateToolButtons()
         {
-            if (sender is Button button && button.Tag is string colorName)
-            {
-                penBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(colorName));
-
-                if (selectedColorBorder != null)
-                {
-                    selectedColorBorder.BorderThickness = new Thickness(0);
-                }
-
-                if (button.Parent is Border border)
-                {
-                    border.BorderThickness = new Thickness(3);
-                    border.BorderBrush = Brushes.Black;
-                    selectedColorBorder = border;
-                }
-            }
+            if (CurrentDocument == null) return;
+            
+            penButton.IsChecked = CurrentDocument.CurrentTool == Tools.Pen;
+            circleButton.IsChecked = CurrentDocument.CurrentTool == Tools.Circle;
         }
 
-        private void ChangePenThickness_TextChanged(object sender, TextChangedEventArgs e)
+        private void DocumentsTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (double.TryParse(PenThicknessInput.Text, out double thickness))
-            {
-                penThickness = Math.Clamp(thickness, 1, 20);
-            }
+            if (CurrentDocument == null) return;
+
+            statusLabelSize.Text = $"{CurrentDocument.ActualWidth:F0}x{CurrentDocument.ActualHeight:F0}";
+            CurrentDocument.MouseMove += Document_MouseMove;
+            UpdateToolButtons();
+        }
+
+        private void Document_MouseMove(object sender, MouseEventArgs e)
+        {
+            var pos = e.GetPosition(CurrentDocument);
+            statusLabelPosition.Text = $"X: {(int)pos.X} Y: {(int)pos.Y}";
         }
 
         private void CloseTab_Click(object sender, RoutedEventArgs e)
         {
-            try
+            if (((Button)sender).Tag is TabItem tabItem && DocumentsTabControl.Items.Contains(tabItem))
             {
-                if (DocumentPane.SelectedContent is LayoutDocument selectedDoc)
+                DocumentsTabControl.Items.Remove(tabItem);
+                if (DocumentsTabControl.Items.Count > 0)
                 {
-                    DocumentPane.Children.Remove(selectedDoc);
-                    UpdateCommandsState();
+                    DocumentsTabControl.SelectedIndex = 0;
+                    statusLabelSize.Text = $"{CurrentDocument.ActualWidth:F0}x{CurrentDocument.ActualHeight:F0}";
                 }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при закрытии вкладки: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void CascadeWindows_Click(object sender, RoutedEventArgs e)
-        {
-            double offsetX = 30, offsetY = 30;
-            int index = 0;
-
-            // Создание списка из элементов, которые нужно обработать
-            var documents = DocumentPane.Children.OfType<LayoutDocument>().ToList();
-
-            foreach (var doc in documents)
-            {
-                doc.Float();
-                doc.FloatingLeft = offsetX * index;
-                doc.FloatingTop = offsetY * index;
-                index++;
-            }
-        }
-        
-        private void TileWindows_Click(object sender, RoutedEventArgs e)
-        {
-            var documents = DocumentPane.Children.OfType<LayoutDocument>().ToList();
-            int count = documents.Count;
-
-            if (count == 0)
-                return;
-
-            // Получаем DockingManager
-            var dockingManager = FindVisualParent<DockingManager>(DocumentPane);
-            if (dockingManager == null)
-                return;
-
-            // Получаем размеры рабочей области DockingManager
-            double paneWidth = dockingManager.ActualWidth;
-            double paneHeight = dockingManager.ActualHeight;
-
-            // Определяем количество строк и столбцов для сетки
-            int rows = (int)Math.Ceiling(Math.Sqrt(count));
-            int cols = (int)Math.Ceiling((double)count / rows);
-
-            // Размеры каждой ячейки сетки
-            double cellWidth = paneWidth / cols;
-            double cellHeight = paneHeight / rows;
-
-            for (int i = 0; i < count; i++)
-            {
-                var doc = documents[i];
-
-                // Вычисляем позицию и размер для каждого окна
-                int row = i / cols;
-                int col = i % cols;
-
-                // Делаем окно плавающим
-                doc.Float();
-
-                // Устанавливаем положение и размер плавающего окна
-                doc.FloatingLeft = col * cellWidth;
-                doc.FloatingTop = row * cellHeight;
-                doc.FloatingWidth = Math.Max(cellWidth, 100); // Минимальная ширина 100
-                doc.FloatingHeight = Math.Max(cellHeight, 100); // Минимальная высота 100
-            }
-        }
-
-        // Вспомогательный метод для поиска DockingManager
-        private T FindVisualParent<T>(DependencyObject child) where T : DependencyObject
-        {
-            var parentObject = VisualTreeHelper.GetParent(child);
-            if (parentObject == null)
-                return null;
-
-            if (parentObject is T parent)
-                return parent;
-
-            return FindVisualParent<T>(parentObject);
-        }
-
-        private void About_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show(
-                "Программа: MDI Редактор Изображений\n" +
-                "Версия: 1.0\n" +
-                "Описание: Позволяет создавать, загружать, редактировать изображения. Поддерживается рисование пером, выбор цвета, толщина линии.\n" +
-                "Форматы: BMP, JPG\n" +
-                "Горячие клавиши:\n" +
-                "   Ctrl+N - Новый холст\n" +
-                "   Ctrl+O - Открыть изображение\n" +
-                "   Ctrl+S - Сохранить\n" +
-                "   Ctrl+Shift+S - Сохранить как\n" +
-                "   Ctrl+W - Закрыть вкладку\n" +
-                "   Alt+F4 - Выход\n" +
-                "Использование:\n" +
-                "   1. Выберите 'Новый холст' или 'Открыть' для загрузки изображения.\n" +
-                "   2. Используйте инструменты рисования: изменяйте цвет и толщину пера.\n" +
-                "   3. Сохраняйте работу в BMP или JPG.\n" +
-                "   4. Используйте опции 'Каскад' и 'Рядом' для удобного расположения окон.",
-                "О программе", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        private void ImageTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            UpdateCommandsState();
-        }
-        
-        private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            foreach (var doc in DocumentPane.Children.OfType<LayoutDocument>())
-            {
-                if (doc.Content is ScrollViewer scrollViewer && scrollViewer.Content is Canvas canvas)
+                else
                 {
-                    canvas.Width = scrollViewer.ActualWidth;
-                    canvas.Height = scrollViewer.ActualHeight;
+                    statusLabelSize.Text = "---";
+                    statusLabelPosition.Text = "X: -- Y:--";
+                }
+                UpdateToolButtons();
+            }
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (DocumentsTabControl.Items.Count > 0)
+            {
+                var result = MessageBox.Show(
+                    "Сохранить изменения перед выходом?",
+                    "Выход",
+                    MessageBoxButton.YesNoCancel);
+
+                if (result == MessageBoxResult.Cancel)
+                {
+                    e.Cancel = true;
+                }
+                else if (result == MessageBoxResult.Yes)
+                {
+                    Save_Executed(this, null);
                 }
             }
         }
 
-        private void UpdateCommandsState()
+        private void LineWidthCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            bool hasDocuments = DocumentPane.Children.OfType<LayoutDocument>().Any();
-            SaveMenuItem.IsEnabled = hasDocuments;
-            SaveAsMenuItem.IsEnabled = hasDocuments;
-            SaveButton.IsEnabled = hasDocuments;
-            SaveAsButton.IsEnabled = hasDocuments;
-            CloseMenuItem.IsEnabled = hasDocuments;
-            CloseButton.IsEnabled = hasDocuments;
-        }
+            if (CurrentDocument == null || lineWidthCombo.SelectedItem == null) return;
 
-        private void InitializeDefaultSelection()
-        {
-            if (PenColorPanel == null) return;
-            foreach (UIElement element in PenColorPanel.Children)
+            if (lineWidthCombo.SelectedItem is ComboBoxItem item &&
+                double.TryParse(item.Content.ToString().Replace("px", ""), out double width))
             {
-                if (element is Border border && border.Child is Button button && button.Tag as string == "Black")
-                {
-                    border.BorderThickness = new Thickness(3);
-                    border.BorderBrush = Brushes.Black;
-                    selectedColorBorder = border;
-                    break;
-                }
+                currentLineWidth = width;
+                CurrentDocument.LineWidth = currentLineWidth;
             }
         }
 
-        private void Exit_Click(object sender, RoutedEventArgs e)
-        {
-            Application.Current.Shutdown();
-        }
+        private void Cascade_Click(object sender, RoutedEventArgs e) { /* Реализация MDI */ }
+        private void TileHorizontal_Click(object sender, RoutedEventArgs e) { /* Реализация MDI */ }
+        private void ArrangeIcons_Click(object sender, RoutedEventArgs e) { /* Реализация MDI */ }
     }
 }

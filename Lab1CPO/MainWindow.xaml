@@ -1,161 +1,79 @@
 ﻿<Window x:Class="Lab1CPO.MainWindow"
-        SizeChanged="MainWindow_SizeChanged"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Lab1CPO"
-        xmlns:fluent="urn:fluent-ribbon"
-        xmlns:dock="http://schemas.xceed.com/wpf/xaml/avalondock"
-        Title="Lab1CPO - MDI Редактор Изображений" Height="600" Width="800">
-        
-    
-    <Window.CommandBindings>
-        <CommandBinding Command="ApplicationCommands.New" Executed="NewCanvas_Click"/>
-        <CommandBinding Command="ApplicationCommands.Open" Executed="OpenFile_Click"/>
-        <CommandBinding Command="ApplicationCommands.Save" Executed="SaveFile_Click" CanExecute="SaveFile_CanExecute"/>
-        <CommandBinding Command="ApplicationCommands.SaveAs" Executed="SaveFileAs_Click" CanExecute="SaveFile_CanExecute"/>
-        <CommandBinding Command="ApplicationCommands.Close" Executed="CloseTab_Click" CanExecute="CloseTab_CanExecute"/>
-        <CommandBinding Command="ApplicationCommands.Close" Executed="Exit_Click"/>
-    </Window.CommandBindings>
-
+        mc:Ignorable="d"
+        Title="MyNewPaint" Height="600" Width="800"
+        Closing="Window_Closing">
     <DockPanel>
-        <!-- Верхнее меню -->
+        <!-- Menu -->
         <Menu DockPanel.Dock="Top">
-            <MenuItem Header="Файл">
-                <MenuItem x:Name="NewMenuItem" Header="Новый холст" Command="ApplicationCommands.New" InputGestureText="Ctrl+N"/>
-                <MenuItem x:Name="OpenMenuItem" Header="Открыть" Command="ApplicationCommands.Open" InputGestureText="Ctrl+O"/>
-                <MenuItem x:Name="SaveMenuItem" Header="Сохранить" Command="ApplicationCommands.Save" InputGestureText="Ctrl+S" IsEnabled="False"/>
-                <MenuItem x:Name="SaveAsMenuItem" Header="Сохранить как..." Command="ApplicationCommands.SaveAs" InputGestureText="Ctrl+Shift+S" IsEnabled="False"/>
-                <MenuItem x:Name="CloseMenuItem" Header="Закрыть вкладку" Command="ApplicationCommands.Close" InputGestureText="Ctrl+W" IsEnabled="False"/>
+            <MenuItem Header="_Файл">
+                <MenuItem Header="_Новый" Command="local:MainWindow.New" InputGestureText="Ctrl+N"/>
                 <Separator/>
-                <MenuItem Header="Выход" Click="Exit_Click" InputGestureText="Alt+F4"/>
+                <MenuItem Header="_Сохранить как..." Command="local:MainWindow.Save" InputGestureText="Ctrl+S"/>
+                <Separator/>
+                <MenuItem Header="_Выход" Click="Exit_Click"/>
             </MenuItem>
-            <MenuItem Header="Окно">
-                <MenuItem x:Name="CascadeMenuItem" Header="Каскадом" Click="CascadeWindows_Click"/>
-                <MenuItem x:Name="TileMenuItem" Header="Рядом" Click="TileWindows_Click"/>
+            <MenuItem Header="_Окно">
+                <MenuItem Header="_Каскадом" Click="Cascade_Click"/>
+                <MenuItem Header="Слева направо" Click="TileHorizontal_Click"/>
+                <MenuItem Header="Упорядочить значки" Click="ArrangeIcons_Click"/>
             </MenuItem>
-            <MenuItem Header="Справка">
-                <MenuItem x:Name="AboutMenuItem" Header="О программе" Click="About_Click"/>
+            <MenuItem Header="_Справка">
+                <MenuItem Header="_О программе" Click="About_Click"/>
             </MenuItem>
         </Menu>
 
-        <!-- Панель инструментов -->
-        <ToolBar DockPanel.Dock="Top">
-            <Button Command="ApplicationCommands.New" ToolTip="Новый холст">
-                <Image Source="C:\Users\Лиза\RiderProjects\Lab1CPO\Lab1CPO\Resources\NewCanvas.png" Width="24" Height="24"/>
-            </Button>
-            <Button Command="ApplicationCommands.Open" ToolTip="Открыть файл">
-                <Image Source="C:\Users\Лиза\RiderProjects\Lab1CPO\Lab1CPO\Resources\Open.png" Width="24" Height="24"/>
-            </Button>
-            <Button x:Name="SaveButton" Command="ApplicationCommands.Save" ToolTip="Сохранить" IsEnabled="False">
-                <Image Source="C:\Users\Лиза\RiderProjects\Lab1CPO\Lab1CPO\Resources\Save.png" Width="24" Height="24"/>
-            </Button>
-            <Button x:Name="SaveAsButton" Command="ApplicationCommands.SaveAs" ToolTip="Сохранить как..." IsEnabled="False">
-                <Image Source="C:\Users\Лиза\RiderProjects\Lab1CPO\Lab1CPO\Resources\SaveAs.png" Height="24"/>
-            </Button>
-            <Button x:Name="CloseButton" Command="ApplicationCommands.Close" ToolTip="Закрыть вкладку" IsEnabled="False">
-                <Image Source="C:\Users\Лиза\RiderProjects\Lab1CPO\Lab1CPO\Resources\Close.png" Width="24" Height="24"/>
-            </Button>
-            
+        <!-- Toolbar -->
+        <ToolBarTray DockPanel.Dock="Top">
+            <ToolBar>
+                <Button Command="local:MainWindow.New" ToolTip="Новый документ">
+                    <Image Source="/Resources/new.png" Width="16" Height="16"/>
+                </Button>
+                <Separator/>
+                <ToggleButton x:Name="penButton" Click="Tool_Pen_Click" ToolTip="Перо">
+                    <Image Source="/Resources/pen.png" Width="16" Height="16"/>
+                </ToggleButton>
+                <ToggleButton x:Name="circleButton" Click="Tool_Circle_Click" ToolTip="Окружность">
+                    <Image Source="/Resources/circle.png" Width="16" Height="16"/>
+                </ToggleButton>
+                <Button Click="ColorPicker_Click" Content="Выбрать цвет..." Margin="5,0"/>
+                <Separator/>
+                <ComboBox x:Name="lineWidthCombo" Width="60" SelectedIndex="0"
+                          SelectionChanged="LineWidthCombo_SelectionChanged">
+                    <ComboBoxItem Content="1px"/>
+                    <ComboBoxItem Content="3px"/>
+                    <ComboBoxItem Content="5px"/>
+                </ComboBox>
+            </ToolBar>
+        </ToolBarTray>
+
+        <!-- Documents Area -->
+        <TabControl x:Name="DocumentsTabControl" SelectionChanged="DocumentsTabControl_SelectionChanged">
+            <TabControl.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding Header}"/>
+                        <Button Content="×" Margin="5,0,0,0" Padding="2"
+                                Click="CloseTab_Click" 
+                                Tag="{Binding RelativeSource={RelativeSource AncestorType=TabItem}}"/>
+                    </StackPanel>
+                </DataTemplate>
+            </TabControl.ItemTemplate>
+        </TabControl>
+
+        <!-- Status Bar -->
+        <StatusBar DockPanel.Dock="Bottom">
+            <StatusBarItem>
+                <TextBlock x:Name="statusLabelSize">---</TextBlock>
+            </StatusBarItem>
             <Separator/>
-
-            <!-- Выбор цвета -->
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Цвет:" VerticalAlignment="Center" Margin="5,0"/>
-                <Grid x:Name="PenColorPanel">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    
-                    <Border Grid.Row="0" Grid.Column="0" BorderThickness="3" BorderBrush="Transparent">
-                        <Button Background="Black" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Black"/>
-                    </Border>
-                    <Border Grid.Row="0" Grid.Column="1" BorderThickness="3" BorderBrush="Transparent">
-                        <Button Background="Red" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Red"/>
-                    </Border>
-                    <Border Grid.Row="0" Grid.Column="2" BorderThickness="3" BorderBrush="Transparent">
-                        <Button Background="Blue" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Blue"/>
-                    </Border>
-                    <Border Grid.Row="0" Grid.Column="3" BorderThickness="3" BorderBrush="Transparent">
-                        <Button Background="Green" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Green"/>
-                    </Border>
-                    <Border Grid.Row="0" Grid.Column="4" BorderThickness="3" BorderBrush="Transparent">
-                        <Button Background="Yellow" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Yellow"/>
-                    </Border>
-                    <Border Grid.Row="1" Grid.Column="0" BorderThickness="3" BorderBrush="Transparent">
-                        <Button Background="Orange" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Orange"/>
-                    </Border>
-                    <Border Grid.Row="1" Grid.Column="1" BorderThickness="3" BorderBrush="Transparent">
-                        <Button Background="Purple" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Purple"/>
-                    </Border>
-                    <Border Grid.Row="1" Grid.Column="2" BorderThickness="3" BorderBrush="Transparent">
-                        <Button Background="Brown" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Brown"/>
-                    </Border>
-                    <Border Grid.Row="1" Grid.Column="3" BorderThickness="3" BorderBrush="Transparent">
-                        <Button Background="Gray" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Gray"/>
-                    </Border>
-                    <Border Grid.Row="1" Grid.Column="4" BorderThickness="3" BorderBrush="Transparent">
-                        <Button Background="Pink" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Pink"/>
-                    </Border>
-                </Grid>
-            </StackPanel>
-
-            <Separator/>
-
-            <!-- Толщина пера -->
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Толщина:" VerticalAlignment="Center" Margin="5,0"/>
-                <TextBox x:Name="PenThicknessInput" Width="40" Height="30" TextChanged="ChangePenThickness_TextChanged" Text="2" VerticalContentAlignment="Center"/>
-                <TextBlock Text="px" VerticalAlignment="Center" Margin="5,0"/>
-            </StackPanel>
-        </ToolBar>
-
-        <!-- Исправленная секция Ribbon -->
-        <fluent:Ribbon DockPanel.Dock="Top">
-            <fluent:RibbonTabItem Header="Файл">
-                <fluent:RibbonGroupBox Header="Документ">
-                    <fluent:Button Icon="Images/NewDocument.png" 
-                                   LargeIcon="Images/NewDocumentLarge.png" 
-                                   Header="Новый"
-                                   Command="ApplicationCommands.New"/>
-                    <fluent:Button Icon="Images/OpenFolder.png" 
-                                   LargeIcon="Images/OpenFolderLarge.png" 
-                                   Header="Открыть"
-                                   Command="ApplicationCommands.Open"/>
-                    <fluent:Button Icon="Images/Save.png" 
-                                   LargeIcon="Images/SaveLarge.png" 
-                                   Header="Сохранить"
-                                   Command="ApplicationCommands.Save"/>
-                    <fluent:Button Icon="Images/SaveAs.png" 
-                                   LargeIcon="Images/SaveAsLarge.png" 
-                                   Header="Сохранить как"
-                                   Command="ApplicationCommands.SaveAs"/>
-                </fluent:RibbonGroupBox>
-                <fluent:RibbonGroupBox Header="Окна">
-                    <fluent:Button Icon="Images/Cascade.png" 
-                                   Header="Каскад"
-                                   Click="CascadeWindows_Click"/>
-                    <fluent:Button Icon="Images/Tile.png" 
-                                   Header="Рядом"
-                                   Click="TileWindows_Click"/>
-                </fluent:RibbonGroupBox>
-            </fluent:RibbonTabItem>
-        </fluent:Ribbon>
-
-        <!-- Контейнер окон MDI -->
-        <dock:DockingManager x:Name="DockManager">
-            <dock:LayoutRoot>
-                <dock:LayoutPanel>
-                    <dock:LayoutDocumentPane x:Name="DocumentPane"/>
-                </dock:LayoutPanel>
-            </dock:LayoutRoot>
-        </dock:DockingManager>
+            <StatusBarItem>
+                <TextBlock x:Name="statusLabelPosition">X: -- Y:--</TextBlock>
+            </StatusBarItem>
+        </StatusBar>
     </DockPanel>
-</Window>
+</Window>   
