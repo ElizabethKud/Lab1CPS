@@ -1,4 +1,5 @@
 ﻿<Window x:Class="Lab1CPO.MainWindow"
+        SizeChanged="MainWindow_SizeChanged"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Lab1CPO"
@@ -35,69 +36,82 @@
         </Menu>
 
         <!-- Панель инструментов -->
-        <ToolBar DockPanel.Dock="Top" Height="80">
-            <Button Content="Новый холст" Command="ApplicationCommands.New"/>
-            <Button Content="Открыть" Command="ApplicationCommands.Open"/>
-            <Button x:Name="SaveButton" Content="Сохранить" Command="ApplicationCommands.Save"/>
-            <Button x:Name="SaveAsButton" Content="Сохранить как..." Command="ApplicationCommands.SaveAs"/>
-            <Button x:Name="CloseButton" Content="Закрыть вкладку" Command="ApplicationCommands.Close"/>
-
+        <ToolBar DockPanel.Dock="Top">
+            <Button Command="ApplicationCommands.New" ToolTip="Новый холст">
+                <Image Source="C:\Users\Лиза\RiderProjects\Lab1CPO\Lab1CPO\NewCanvas.png" Width="24" Height="24"/>
+            </Button>
+            <Button Command="ApplicationCommands.Open" ToolTip="Открыть файл">
+                <Image Source="C:\Users\Лиза\RiderProjects\Lab1CPO\Lab1CPO\Open.png" Width="24" Height="24"/>
+            </Button>
+            <Button x:Name="SaveButton" Command="ApplicationCommands.Save" ToolTip="Сохранить">
+                <Image Source="C:\Users\Лиза\RiderProjects\Lab1CPO\Lab1CPO\Save.png" Width="24" Height="24"/>
+            </Button>
+            <Button x:Name="SaveAsButton" Command="ApplicationCommands.SaveAs" ToolTip="Сохранить как...">
+                <Image Source="C:\Users\Лиза\RiderProjects\Lab1CPO\Lab1CPO\SaveAs.png" Width="24" Height="24"/>
+            </Button>
+            <Button x:Name="CloseButton" Command="ApplicationCommands.Close" ToolTip="Закрыть вкладку">
+                <Image Source="C:\Users\Лиза\RiderProjects\Lab1CPO\Lab1CPO\Close.png" Width="24" Height="24"/>
+            </Button>
+            
             <Separator/>
 
             <!-- Выбор цвета -->
-            <TextBlock Text="Цвет пера:" VerticalAlignment="Center" Margin="10,0"/>
-            <Grid x:Name="PenColorPanel" Width="150">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-
-                <!-- Цвета (10 штук в 2 ряда) -->
-                <Border x:Name="BorderBlack" Grid.Row="0" Grid.Column="0" BorderThickness="3" BorderBrush="Transparent">
-                    <Button Background="Black" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Black"/>
-                </Border>
-                <Border x:Name="BorderRed" Grid.Row="0" Grid.Column="1" BorderThickness="3" BorderBrush="Transparent">
-                    <Button Background="Red" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Red"/>
-                </Border>
-                <Border x:Name="BorderBlue" Grid.Row="0" Grid.Column="2" BorderThickness="3" BorderBrush="Transparent">
-                    <Button Background="Blue" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Blue"/>
-                </Border>
-                <Border x:Name="BorderGreen" Grid.Row="0" Grid.Column="3" BorderThickness="3" BorderBrush="Transparent">
-                    <Button Background="Green" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Green"/>
-                </Border>
-                <Border x:Name="BorderYellow" Grid.Row="0" Grid.Column="4" BorderThickness="3" BorderBrush="Transparent">
-                    <Button Background="Yellow" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Yellow"/>
-                </Border>
-                <Border x:Name="BorderOrange" Grid.Row="1" Grid.Column="0" BorderThickness="3" BorderBrush="Transparent">
-                    <Button Background="Orange" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Orange"/>
-                </Border>
-                <Border x:Name="BorderPurple" Grid.Row="1" Grid.Column="1" BorderThickness="3" BorderBrush="Transparent">
-                    <Button Background="Purple" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Purple"/>
-                </Border>
-                <Border x:Name="BorderBrown" Grid.Row="1" Grid.Column="2" BorderThickness="3" BorderBrush="Transparent">
-                    <Button Background="Brown" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Brown"/>
-                </Border>
-                <Border x:Name="BorderGray" Grid.Row="1" Grid.Column="3" BorderThickness="3" BorderBrush="Transparent">
-                    <Button Background="Gray" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Gray"/>
-                </Border>
-                <Border x:Name="BorderPink" Grid.Row="1" Grid.Column="4" BorderThickness="3" BorderBrush="Transparent">
-                    <Button Background="Pink" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Pink"/>
-                </Border>
-            </Grid>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Цвет:" VerticalAlignment="Center" Margin="5,0"/>
+                <Grid x:Name="PenColorPanel">
+    <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+    </Grid.ColumnDefinitions>
+    <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+    
+    <Border Grid.Row="0" Grid.Column="0" BorderThickness="3" BorderBrush="Transparent">
+        <Button Background="Black" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Black"/>
+    </Border>
+    <Border Grid.Row="0" Grid.Column="1" BorderThickness="3" BorderBrush="Transparent">
+        <Button Background="Red" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Red"/>
+    </Border>
+    <Border Grid.Row="0" Grid.Column="2" BorderThickness="3" BorderBrush="Transparent">
+        <Button Background="Blue" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Blue"/>
+    </Border>
+    <Border Grid.Row="0" Grid.Column="3" BorderThickness="3" BorderBrush="Transparent">
+        <Button Background="Green" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Green"/>
+    </Border>
+    <Border Grid.Row="0" Grid.Column="4" BorderThickness="3" BorderBrush="Transparent">
+        <Button Background="Yellow" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Yellow"/>
+    </Border>
+    <Border Grid.Row="1" Grid.Column="0" BorderThickness="3" BorderBrush="Transparent">
+        <Button Background="Orange" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Orange"/>
+    </Border>
+    <Border Grid.Row="1" Grid.Column="1" BorderThickness="3" BorderBrush="Transparent">
+        <Button Background="Purple" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Purple"/>
+    </Border>
+    <Border Grid.Row="1" Grid.Column="2" BorderThickness="3" BorderBrush="Transparent">
+        <Button Background="Brown" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Brown"/>
+    </Border>
+    <Border Grid.Row="1" Grid.Column="3" BorderThickness="3" BorderBrush="Transparent">
+        <Button Background="Gray" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Gray"/>
+    </Border>
+    <Border Grid.Row="1" Grid.Column="4" BorderThickness="3" BorderBrush="Transparent">
+        <Button Background="Pink" Width="25" Height="25" Click="ChangePenColor_Click" Tag="Pink"/>
+    </Border>
+</Grid>
+            </StackPanel>
 
             <Separator/>
 
             <!-- Толщина пера -->
-            <TextBlock Text="Толщина пера:" VerticalAlignment="Center" Margin="10,0"/>
-            <TextBox x:Name="PenThicknessInput" Width="50" TextChanged="ChangePenThickness_TextChanged" Text="2"/>
-            <TextBlock Text=" px" VerticalAlignment="Center"/>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Толщина:" VerticalAlignment="Center" Margin="5,0"/>
+                <TextBox x:Name="PenThicknessInput" Width="40" Height="30" TextChanged="ChangePenThickness_TextChanged" Text="2" VerticalContentAlignment="Center"/>
+                <TextBlock Text="px" VerticalAlignment="Center" Margin="5,0"/>
+            </StackPanel>
         </ToolBar>
 
         <!-- Контейнер вкладок -->
