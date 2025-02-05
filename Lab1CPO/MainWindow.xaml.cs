@@ -8,6 +8,10 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Microsoft.Win32;
 using Path = System.IO.Path;
+using Xceed.Wpf.AvalonDock; 
+using Xceed.Wpf.AvalonDock.Layout;
+using Fluent;
+using Button = System.Windows.Controls.Button;
 
 namespace Lab1CPO
 {
@@ -41,29 +45,20 @@ namespace Lab1CPO
         
         private void SaveFile_CanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
-            e.CanExecute = ImageTabs != null && ImageTabs.Items.Count > 0;
+            e.CanExecute = DocumentPane != null && DocumentPane.Children?.OfType<LayoutDocument>().Any() == true;
         }
 
         private void CloseTab_CanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
-            e.CanExecute = ImageTabs != null && ImageTabs.Items.Count > 0;
+            e.CanExecute = DocumentPane != null && DocumentPane.Children.OfType<LayoutDocument>().Any();
         }
 
-        private void NewCanvas_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                OpenNewCanvas();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при создании нового холста: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
+
+        private void NewCanvas_Click(object sender, RoutedEventArgs e) => OpenNewCanvas();
 
         private void OpenNewCanvas()
         {
-            TabItem tabItem = new TabItem { Header = "Новый холст" };
+            LayoutDocument doc = new LayoutDocument { Title = "Новый холст" };
             Grid grid = new Grid();
 
             Canvas drawingCanvas = new Canvas
@@ -74,29 +69,23 @@ namespace Lab1CPO
             };
 
             grid.Children.Add(drawingCanvas);
-
             drawingCanvas.MouseDown += Canvas_MouseDown;
             drawingCanvas.MouseMove += Canvas_MouseMove;
             drawingCanvas.MouseUp += Canvas_MouseUp;
 
-            ScrollViewer scrollViewer = new ScrollViewer { Content = grid };
-            tabItem.Content = scrollViewer;
-            tabItem.Tag = drawingCanvas;
-
-            ImageTabs.Items.Add(tabItem);
-            ImageTabs.SelectedItem = tabItem;
-            UpdateCommandsState();
+            doc.Content = grid;
+            DocumentPane.Children.Add(doc);
         }
 
         private void OpenFile_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                OpenFileDialog openFileDialog = new OpenFileDialog { Filter = "Image Files|*.bmp;*.jpg;*.png" };
+                OpenFileDialog openFileDialog = new OpenFileDialog { Filter = "Изображения|*.bmp;*.jpg;*.png" };
                 if (openFileDialog.ShowDialog() == true)
                 {
                     OpenImageTab(openFileDialog.FileName);
-                }
+                }   
             }
             catch (Exception ex)
             {
@@ -106,37 +95,21 @@ namespace Lab1CPO
 
         private void OpenImageTab(string filePath)
         {
-            TabItem tabItem = new TabItem { Header = Path.GetFileName(filePath) };
-            Grid grid = new Grid();
-
-            Image image = new Image
-            {
-                Source = new BitmapImage(new Uri(filePath)),
-                Stretch = Stretch.None
-            };
-
-            Canvas drawingCanvas = new Canvas
-            {
-                Background = Brushes.Transparent,
-                Width = image.Source.Width,
-                Height = image.Source.Height
-            };
-
-            grid.Children.Add(image);
-            grid.Children.Add(drawingCanvas);
+            LayoutDocument doc = new LayoutDocument { Title = Path.GetFileName(filePath) };
+            Image image = new Image { Source = new BitmapImage(new Uri(filePath)), Stretch = Stretch.None };
+            Canvas drawingCanvas = new Canvas { Background = Brushes.Transparent, Width = image.Source.Width, Height = image.Source.Height };
 
             drawingCanvas.MouseDown += Canvas_MouseDown;
             drawingCanvas.MouseMove += Canvas_MouseMove;
             drawingCanvas.MouseUp += Canvas_MouseUp;
 
-            ScrollViewer scrollViewer = new ScrollViewer { Content = grid };
-            tabItem.Content = scrollViewer;
-            tabItem.Tag = drawingCanvas;
+            Grid grid = new Grid();
+            grid.Children.Add(image);
+            grid.Children.Add(drawingCanvas);
 
-            ImageTabs.Items.Add(tabItem);
-            ImageTabs.SelectedItem = tabItem;
-            currentFilePath = filePath;
-            UpdateCommandsState();
+            doc.Content = new ScrollViewer { Content = grid };
+            DocumentPane.Children.Add(doc);
+            doc.IsSelected = true;
         }
 
         private void Canvas_MouseDown(object sender, MouseButtonEventArgs e)
@@ -176,20 +149,13 @@ namespace Lab1CPO
 
         private void SaveFile_Click(object sender, RoutedEventArgs e)
         {
-            try
+            if (DocumentPane.SelectedContent is LayoutDocument doc && doc.Content is ScrollViewer viewer && viewer.Content is Canvas canvas)
             {
-                if (currentFilePath == null)
+                SaveFileDialog saveFileDialog = new SaveFileDialog { Filter = "BMP Files|*.bmp|JPEG Files|*.jpg" };
+                if (saveFileDialog.ShowDialog() == true)
                 {
-                    SaveFileAs_Click(sender, e);
+                    SaveImage(canvas, saveFileDialog.FileName);
                 }
-                else
-                {
-                    SaveImage(currentFilePath);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при сохранении файла: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -197,11 +163,19 @@ namespace Lab1CPO
         {
             try
             {
-                SaveFileDialog saveFileDialog = new SaveFileDialog { Filter = "BMP Files|*.bmp|JPEG Files|*.jpg" };
-                if (saveFileDialog.ShowDialog() == true)
+                if (DocumentPane.SelectedContent is LayoutDocument selectedDoc &&
+                    selectedDoc.Content is ScrollViewer viewer &&
+                    viewer.Content is Canvas canvas)
                 {
-                    currentFilePath = saveFileDialog.FileName;
-                    SaveImage(currentFilePath);
+                    SaveFileDialog saveFileDialog = new SaveFileDialog { Filter = "BMP Files|*.bmp|JPEG Files|*.jpg" };
+                    if (saveFileDialog.ShowDialog() == true)
+                    {
+                        SaveImage(canvas, saveFileDialog.FileName);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Нет активного документа для сохранения.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)
@@ -210,20 +184,20 @@ namespace Lab1CPO
             }
         }
 
-        private void SaveImage(string filePath)
+
+        private void SaveImage(Canvas canvas, string filePath)
         {
-            if (ImageTabs.SelectedItem is TabItem selectedTab && selectedTab.Content is ScrollViewer scrollViewer && scrollViewer.Content is Grid grid)
+            RenderTargetBitmap renderBitmap = new RenderTargetBitmap((int)canvas.ActualWidth, (int)canvas.ActualHeight, 96d, 96d, PixelFormats.Pbgra32);
+            canvas.Measure(new Size(canvas.ActualWidth, canvas.ActualHeight));
+            canvas.Arrange(new Rect(new Size(canvas.ActualWidth, canvas.ActualHeight)));
+            renderBitmap.Render(canvas);
+
+            BitmapEncoder encoder = Path.GetExtension(filePath).ToLower() == ".bmp" ? new BmpBitmapEncoder() : new JpegBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(renderBitmap));
+
+            using (var stream = File.Create(filePath))
             {
-                RenderTargetBitmap renderBitmap = new RenderTargetBitmap((int)grid.ActualWidth, (int)grid.ActualHeight, 96d, 96d, PixelFormats.Pbgra32);
-                grid.Measure(new Size(grid.ActualWidth, grid.ActualHeight));
-                grid.Arrange(new Rect(new Size(grid.ActualWidth, grid.ActualHeight)));
-                renderBitmap.Render(grid);
-                BitmapEncoder encoder = Path.GetExtension(filePath).ToLower() == ".bmp" ? new BmpBitmapEncoder() : new JpegBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(renderBitmap));
-                using (var stream = File.Create(filePath))
-                {
-                    encoder.Save(stream);
-                }
+                encoder.Save(stream);
             }
         }
 
@@ -259,9 +233,9 @@ namespace Lab1CPO
         {
             try
             {
-                if (ImageTabs.SelectedItem is TabItem selectedTab)
+                if (DocumentPane.SelectedContent is LayoutDocument selectedDoc)
                 {
-                    ImageTabs.Items.Remove(selectedTab);
+                    DocumentPane.Children.Remove(selectedDoc);
                     UpdateCommandsState();
                 }
             }
@@ -273,40 +247,76 @@ namespace Lab1CPO
 
         private void CascadeWindows_Click(object sender, RoutedEventArgs e)
         {
-            double offsetX = 30;
-            double offsetY = 30;
+            double offsetX = 30, offsetY = 30;
             int index = 0;
-            foreach (TabItem tab in ImageTabs.Items)
+
+            // Создание списка из элементов, которые нужно обработать
+            var documents = DocumentPane.Children.OfType<LayoutDocument>().ToList();
+
+            foreach (var doc in documents)
             {
-                if (tab.Content is ScrollViewer scrollViewer)
-                {
-                    scrollViewer.Margin = new Thickness(offsetX * index, offsetY * index, 0, 0);
-                    index++;
-                }
+                doc.Float();
+                doc.FloatingLeft = offsetX * index;
+                doc.FloatingTop = offsetY * index;
+                index++;
+            }
+        }
+        
+        private void TileWindows_Click(object sender, RoutedEventArgs e)
+        {
+            var documents = DocumentPane.Children.OfType<LayoutDocument>().ToList();
+            int count = documents.Count;
+
+            if (count == 0)
+                return;
+
+            // Получаем DockingManager
+            var dockingManager = FindVisualParent<DockingManager>(DocumentPane);
+            if (dockingManager == null)
+                return;
+
+            // Получаем размеры рабочей области DockingManager
+            double paneWidth = dockingManager.ActualWidth;
+            double paneHeight = dockingManager.ActualHeight;
+
+            // Определяем количество строк и столбцов для сетки
+            int rows = (int)Math.Ceiling(Math.Sqrt(count));
+            int cols = (int)Math.Ceiling((double)count / rows);
+
+            // Размеры каждой ячейки сетки
+            double cellWidth = paneWidth / cols;
+            double cellHeight = paneHeight / rows;
+
+            for (int i = 0; i < count; i++)
+            {
+                var doc = documents[i];
+
+                // Вычисляем позицию и размер для каждого окна
+                int row = i / cols;
+                int col = i % cols;
+
+                // Делаем окно плавающим
+                doc.Float();
+
+                // Устанавливаем положение и размер плавающего окна
+                doc.FloatingLeft = col * cellWidth;
+                doc.FloatingTop = row * cellHeight;
+                doc.FloatingWidth = Math.Max(cellWidth, 100); // Минимальная ширина 100
+                doc.FloatingHeight = Math.Max(cellHeight, 100); // Минимальная высота 100
             }
         }
 
-        private void TileWindows_Click(object sender, RoutedEventArgs e)
+        // Вспомогательный метод для поиска DockingManager
+        private T FindVisualParent<T>(DependencyObject child) where T : DependencyObject
         {
-            int count = ImageTabs.Items.Count;
-            if (count == 0) return;
-            int rows = (int)Math.Ceiling(Math.Sqrt(count));
-            int cols = (int)Math.Ceiling((double)count / rows);
-            double tileWidth = this.ActualWidth / cols;
-            double tileHeight = this.ActualHeight / rows;
-            int index = 0;
-            foreach (TabItem tab in ImageTabs.Items)
-            {
-                if (tab.Content is ScrollViewer scrollViewer)
-                {
-                    int row = index / cols;
-                    int col = index % cols;
-                    scrollViewer.Width = tileWidth;
-                    scrollViewer.Height = tileHeight;
-                    scrollViewer.Margin = new Thickness(tileWidth * col, tileHeight * row, 0, 0);
-                    index++;
-                }
-            }
+            var parentObject = VisualTreeHelper.GetParent(child);
+            if (parentObject == null)
+                return null;
+
+            if (parentObject is T parent)
+                return parent;
+
+            return FindVisualParent<T>(parentObject);
         }
 
         private void About_Click(object sender, RoutedEventArgs e)
@@ -338,31 +348,25 @@ namespace Lab1CPO
         
         private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            foreach (TabItem tab in ImageTabs.Items)
+            foreach (var doc in DocumentPane.Children.OfType<LayoutDocument>())
             {
-                if (tab.Content is ScrollViewer scrollViewer && scrollViewer.Content is Grid grid)
+                if (doc.Content is ScrollViewer scrollViewer && scrollViewer.Content is Canvas canvas)
                 {
-                    foreach (UIElement child in grid.Children)
-                    {
-                        if (child is Canvas canvas)
-                        {
-                            canvas.Width = scrollViewer.ActualWidth;
-                            canvas.Height = scrollViewer.ActualHeight;
-                        }
-                    }
+                    canvas.Width = scrollViewer.ActualWidth;
+                    canvas.Height = scrollViewer.ActualHeight;
                 }
             }
         }
 
         private void UpdateCommandsState()
         {
-            bool hasTabs = ImageTabs.Items.Count > 0;
-            SaveMenuItem.IsEnabled = hasTabs;
-            SaveAsMenuItem.IsEnabled = hasTabs;
-            SaveButton.IsEnabled = hasTabs;
-            SaveAsButton.IsEnabled = hasTabs;
-            CloseMenuItem.IsEnabled = hasTabs;
-            CloseButton.IsEnabled = hasTabs;
+            bool hasDocuments = DocumentPane.Children.OfType<LayoutDocument>().Any();
+            SaveMenuItem.IsEnabled = hasDocuments;
+            SaveAsMenuItem.IsEnabled = hasDocuments;
+            SaveButton.IsEnabled = hasDocuments;
+            SaveAsButton.IsEnabled = hasDocuments;
+            CloseMenuItem.IsEnabled = hasDocuments;
+            CloseButton.IsEnabled = hasDocuments;
         }
 
         private void InitializeDefaultSelection()

@@ -9,7 +9,9 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="AvalonDock" Version="1.3.0" />
       <PackageReference Include="Extended.Wpf.Toolkit" Version="4.7.25103.5738" />
+      <PackageReference Include="Fluent.Ribbon" Version="10.1.0" />
     </ItemGroup>
 
 </Project>
