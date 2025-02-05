@@ -27,6 +27,7 @@ namespace Lab1CPO
             InitializeShortcuts();
             InitializeDefaultSelection();
             UpdateCommandsState();
+            SizeChanged += MainWindow_SizeChanged;
         }
 
         private void InitializeShortcuts()
@@ -262,22 +263,85 @@ namespace Lab1CPO
 
         private void CascadeWindows_Click(object sender, RoutedEventArgs e)
         {
-            // Реализация каскадного расположения окон
+            double offsetX = 30;
+            double offsetY = 30;
+            int index = 0;
+            foreach (TabItem tab in ImageTabs.Items)
+            {
+                if (tab.Content is ScrollViewer scrollViewer)
+                {
+                    scrollViewer.Margin = new Thickness(offsetX * index, offsetY * index, 0, 0);
+                    index++;
+                }
+            }
         }
 
         private void TileWindows_Click(object sender, RoutedEventArgs e)
         {
-            // Реализация расположения окон рядом
+            int count = ImageTabs.Items.Count;
+            if (count == 0) return;
+            int rows = (int)Math.Ceiling(Math.Sqrt(count));
+            int cols = (int)Math.Ceiling((double)count / rows);
+            double tileWidth = this.ActualWidth / cols;
+            double tileHeight = this.ActualHeight / rows;
+            int index = 0;
+            foreach (TabItem tab in ImageTabs.Items)
+            {
+                if (tab.Content is ScrollViewer scrollViewer)
+                {
+                    int row = index / cols;
+                    int col = index % cols;
+                    scrollViewer.Width = tileWidth;
+                    scrollViewer.Height = tileHeight;
+                    scrollViewer.Margin = new Thickness(tileWidth * col, tileHeight * row, 0, 0);
+                    index++;
+                }
+            }
         }
 
         private void About_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("MDI Редактор Изображений\nВерсия 1.0", "О программе", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(
+                "Программа: MDI Редактор Изображений\n" +
+                "Версия: 1.0\n" +
+                "Описание: Позволяет создавать, загружать, редактировать изображения. Поддерживается рисование пером, выбор цвета, толщина линии.\n" +
+                "Форматы: BMP, JPG\n" +
+                "Горячие клавиши:\n" +
+                "   Ctrl+N - Новый холст\n" +
+                "   Ctrl+O - Открыть изображение\n" +
+                "   Ctrl+S - Сохранить\n" +
+                "   Ctrl+Shift+S - Сохранить как\n" +
+                "   Ctrl+W - Закрыть вкладку\n" +
+                "   Alt+F4 - Выход\n" +
+                "Использование:\n" +
+                "   1. Выберите 'Новый холст' или 'Открыть' для загрузки изображения.\n" +
+                "   2. Используйте инструменты рисования: изменяйте цвет и толщину пера.\n" +
+                "   3. Сохраняйте работу в BMP или JPG.\n" +
+                "   4. Используйте опции 'Каскад' и 'Рядом' для удобного расположения окон.",
+                "О программе", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void ImageTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             UpdateCommandsState();
+        }
+        
+        private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            foreach (TabItem tab in ImageTabs.Items)
+            {
+                if (tab.Content is ScrollViewer scrollViewer && scrollViewer.Content is Grid grid)
+                {
+                    foreach (UIElement child in grid.Children)
+                    {
+                        if (child is Canvas canvas)
+                        {
+                            canvas.Width = scrollViewer.ActualWidth;
+                            canvas.Height = scrollViewer.ActualHeight;
+                        }
+                    }
+                }
+            }
         }
 
         private void UpdateCommandsState()
